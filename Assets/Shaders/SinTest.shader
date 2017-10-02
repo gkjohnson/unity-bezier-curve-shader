@@ -38,6 +38,7 @@ Shader "SinTest"
 				{
 					float4	position	: POSITION;		// vertex position
 				};
+
 				// Vertex Shader
 				VS_OUTPUT vert(appdata_base v)
 				{
@@ -46,8 +47,7 @@ Shader "SinTest"
 					output.position = v.vertex;			
 					return output;
 				}
-
-
+                
 				// HULL SHADER //
 				// Output control point
 				struct HS_OUTPUT

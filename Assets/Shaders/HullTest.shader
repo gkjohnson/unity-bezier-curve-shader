@@ -251,7 +251,6 @@ Shader "HullTest"
 
 				
 				// GEOMETRY SHADER //
-				// Geometry to  UCLAGL_fragment
 				struct GS_OUTPUT
 				{
 					float4	position	: POSITION;		// fragment position

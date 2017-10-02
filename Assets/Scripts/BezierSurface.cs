@@ -1,39 +1,30 @@
 ﻿using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
 
 [RequireComponent(typeof(MeshFilter))]
-[RequireComponent(typeof(MeshRenderer))]
 public class BezierSurface : MonoBehaviour {
-	
+
+	// Visual size of and whether to display the
+    // control points
 	public float _controlpointScale = 0.1f;
 	public bool _showControlPoints = true;
 
 	Transform[] _controlPoints = new Transform[16]; 
-	ComputeBuffer buffer;
+	ComputeBuffer _buffer;
 
-
-	// Update is called once per frame
 	void Start () {
 		Mesh mesh = new Mesh();
 
-		// 1 -- 2
+		// 1----2
 		// |    |
-		// 4 -- 3
-		mesh.vertices = new Vector3[]
-		{
-			//new Vector3(-1,0,1),
-			//new Vector3(-1,0,-1),
-			//new Vector3(1,0,-1),
-			//new Vector3(1,0,1)
+		// 4----3
+		mesh.vertices = new Vector3[] {
 			Vector3.zero,
 			Vector3.zero,
 			Vector3.zero,
 			Vector3.zero
 		};
 
-		mesh.uv = new Vector2[]
-		{	
+		mesh.uv = new Vector2[] {
 			new Vector2(1,0),
 			new Vector2(0,0),
 			new Vector2(0,1),
@@ -41,38 +32,36 @@ public class BezierSurface : MonoBehaviour {
 		};
 
 		// create the control points
-		for( int y = 0 ; y < 4 ; y ++ )
+		for( int y = 0; y < 4; y++ )
 		{
-			for( int x = 0 ; x < 4 ;x ++ )
+			for( int x = 0; x < 4; x++ )
 			{
 				Transform cp = GameObject.CreatePrimitive(PrimitiveType.Sphere).transform;
-				cp.name = "" + (4*y + x);
+				cp.name = "control point " + (4 * y + x);
+                cp.hideFlags = HideFlags.HideInHierarchy;
 				Destroy(cp.GetComponent<Collider>());
 
 				cp.parent = transform;
 				cp.localScale *= 0.1f;
-				cp.localPosition = new Vector3( -1 + 2 * x/3.0f, 0, -1 + 2 * y/3.0f);
+				cp.localPosition = new Vector3( -1 + 2 * x / 3.0f, 0, -1 + 2 * y / 3.0f);
 
 				cp.GetComponent<Renderer>().material.color = Color.red;
-
-				//cp.gameObject.hideFlags = HideFlags.HideInInspector;
 
 				_controlPoints[y * 4 + x] = cp;
 			}
 		}
 
 		// set the indices to quads so we our hull shader can use it
-		mesh.SetIndices(new int[]{3,2,1,0}, MeshTopology.Quads, 0);
+		mesh.SetIndices(new int[]{ 3, 2, 1, 0}, MeshTopology.Quads, 0);
 		GetComponent<MeshFilter>().mesh = mesh;
 
 		// initialize the buffer
-		buffer = new ComputeBuffer(16, 3 * 4);
+		_buffer = new ComputeBuffer(16, 3 * 4);
 	}
 
-	// update the buffer with the new control points
+	// Update the buffer with the new control points
 	void Update()
 	{
-		// 
 		Vector3[] arr = new Vector3[16];
 		for( int i = 0 ; i < arr.Length ; i ++ )
 		{
@@ -80,21 +69,21 @@ public class BezierSurface : MonoBehaviour {
 			_controlPoints[i].GetComponent<Renderer>().enabled = _showControlPoints;
 			arr[i] = _controlPoints[i].localPosition;
 		}
-
-
-		buffer.SetData(arr);
-		GetComponent<Renderer>().material.SetBuffer("_controlPoints", buffer);
+        
+		_buffer.SetData(arr);
+		GetComponent<Renderer>().material.SetBuffer("_controlPoints", _buffer);
 
 	}
 
-
+    // Draw visuals for the connectors between
+    // the grab points
 	void OnDrawGizmos()
 	{
 		Gizmos.color = new Color(1,1,1,0.25f);
 
 		// if we're not running, then don't draw
 		// the control point connectors, only the outline
-		if( buffer == null)
+		if( _buffer == null)
 		{
 			Gizmos.matrix = transform.localToWorldMatrix;
 			Gizmos.DrawLine( new Vector3(-1,0,1), new Vector3(1,0,1));
