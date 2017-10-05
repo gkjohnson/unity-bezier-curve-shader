@@ -3,15 +3,15 @@
 [RequireComponent(typeof(MeshFilter))]
 public class BezierSurface : MonoBehaviour {
 
-	// Visual size of and whether to display the
+    // Visual size of and whether to display the
     // control points
-	public float _controlpointScale = 0.1f;
+    public float _controlpointScale = 0.1f;
 	public bool _showControlPoints = true;
 
 	Transform[] _controlPoints = new Transform[16]; 
 	ComputeBuffer _buffer;
 
-	void Start () {
+	void Awake () {
 		Mesh mesh = new Mesh();
 
 		// 1----2
@@ -40,7 +40,7 @@ public class BezierSurface : MonoBehaviour {
 				cp.name = "control point " + (4 * y + x);
                 cp.hideFlags = HideFlags.HideInHierarchy;
 				Destroy(cp.GetComponent<Collider>());
-
+                
 				cp.parent = transform;
 				cp.localScale *= 0.1f;
 				cp.localPosition = new Vector3( -1 + 2 * x / 3.0f, 0, -1 + 2 * y / 3.0f);
@@ -72,8 +72,7 @@ public class BezierSurface : MonoBehaviour {
         
 		_buffer.SetData(arr);
 		GetComponent<Renderer>().material.SetBuffer("_controlPoints", _buffer);
-
-	}
+   	}
 
     // Draw visuals for the connectors between
     // the grab points

@@ -35,13 +35,48 @@ Shader "HullTest"
 				uniform StructuredBuffer<float3> _controlPoints;
 				float _TessellationAmt;
 
-				// VERTEX SHADER //
 				// Vertex to Geometry
 				struct VS_OUTPUT
 				{
 					float4 position     : POSITION;		// vertex position
 					float2 uv           : TEXCOORD0;
 				};
+                
+                // Output control point
+                struct HS_OUTPUT
+                {
+                    float3 position	: BEZIERPOS;
+                    float2 uv       : TEXCOORD0;
+                };
+
+                // Output patch constant data.
+                struct HS_CONSTANT_OUTPUT
+                {
+                    float Edges[4]        : SV_TessFactor;
+                    float Inside[2]       : SV_InsideTessFactor;
+
+                    //float3 vTangent[4]    : TANGENT;
+                    //float2 vUV[4]         : TEXCOORD;
+                    //float3 vTanUCorner[4] : TANUCORNER;
+                    //float3 vTanVCorner[4] : TANVCORNER;
+                    //float4 vCWts          : TANWEIGHTS;
+                };
+
+                struct DS_OUTPUT
+                {
+                    float4 position : POSITION;
+                    float4 col : COLOR;
+                    float2 uv : TEXCOORD0;
+                };
+
+                // GEOMETRY SHADER //
+                struct GS_OUTPUT
+                {
+                    float4	position	: POSITION;		// fragment position
+                    float4  col 		: COLOR;
+                    float2 uv : TEXCOORD0;
+                };
+
 				// Vertex Shader
 				VS_OUTPUT vert(appdata_base v)
 				{
@@ -53,27 +88,6 @@ Shader "HullTest"
 					return output;
 				}
 
-
-				// HULL SHADER //
-				// Output control point
-				struct HS_OUTPUT
-				{
-				    float3 position	: BEZIERPOS;
-				    float2 uv       : TEXCOORD0;
-				};
-
-				// Output patch constant data.
-				struct HS_CONSTANT_OUTPUT
-				{
-				    float Edges[4]        : SV_TessFactor;
-				    float Inside[2]       : SV_InsideTessFactor;
-				    
-				    //float3 vTangent[4]    : TANGENT;
-				    //float2 vUV[4]         : TEXCOORD;
-				    //float3 vTanUCorner[4] : TANUCORNER;
-				    //float3 vTanVCorner[4] : TANVCORNER;
-				    //float4 vCWts          : TANWEIGHTS;
-				};
 				#define MAX_POINTS 4
 				
 				// Patch Constant Function
@@ -115,17 +129,7 @@ Shader "HullTest"
 					output.position = ip[i].position;
 					
 				    return output;
-				}	
-
-
-				// DOMAIN SHADER //
-				struct DS_OUTPUT
-				{
-					float4 position : POSITION;
-					float4 col : COLOR;
-					float2 uv : TEXCOORD0;
-				};
-				
+				}				
 				
 				// returns the factorial of n until "stop" is hit
 				float factorial(int n, int stop)
@@ -247,16 +251,6 @@ Shader "HullTest"
 				    return output;    
 				}
 				
-
-
-				
-				// GEOMETRY SHADER //
-				struct GS_OUTPUT
-				{
-					float4	position	: POSITION;		// fragment position
-					float4  col 		: COLOR;
-					float2 uv : TEXCOORD0;
-				};
 				// Geometry Shader
 				[maxvertexcount(6)]
 				void geom(triangle DS_OUTPUT p[3], inout TriangleStream<GS_OUTPUT> triStream)
@@ -283,7 +277,6 @@ Shader "HullTest"
 					triStream.Append(i3);	
 				}
 				
-				// FRAGMENT SHADER
 				// Fragment Shader
 				float4 frag(GS_OUTPUT input) : COLOR
 				{				

@@ -1,22 +1,20 @@
-﻿// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
-
-// TODO : Something weird happens with this shader 
+﻿// TODO : Something weird happens with this shader 
 // when it's batched.
-Shader "SinTest" 
+// It could have something to do with the shader getting batched
+// and therefore not having the right transformed "forward"
+Shader "sin-test" 
 {
 	Properties 
 	{
 		_SinOffset ("Sin Offset", Float) = 0
-		//_MainTex ("Main Texture", 2D) = "white" {}
 	}
 
 	SubShader 
 	{
-		Tags { "RenderType"="Opaque" "Queue"="Geometry" }
+		Tags { "RenderType" = "Opaque" "Queue" = "Geometry" }
 		Pass
 		{
 			Blend SrcAlpha OneMinusSrcAlpha 
-			LOD 200
 			
 			CGPROGRAM
 				#pragma target 5.0
@@ -26,19 +24,41 @@ Shader "SinTest"
 				#pragma domain dom
 				#pragma geometry geom
 				#pragma fragment frag
-
 				
 				float4 _Color;
 				float _SinOffset;
-				
-				
-				// VERTEX SHADER //
+								
 				// Vertex to Geometry
-				struct VS_OUTPUT
-				{
-					float4	position	: POSITION;		// vertex position
-				};
+				struct VS_OUTPUT { float4 position : POSITION; };
 
+                // Output control point
+                struct HS_OUTPUT { float3 position : BEZIERPOS; };
+
+                // Output patch constant data.
+                struct HS_CONSTANT_OUTPUT
+                {
+                    float Edges[3]        : SV_TessFactor;
+                    float Inside[1]       : SV_InsideTessFactor;
+
+                    //float3 vTangent[4]    : TANGENT;
+                    //float2 vUV[4]         : TEXCOORD;
+                    //float3 vTanUCorner[4] : TANUCORNER;
+                    //float3 vTanVCorner[4] : TANVCORNER;
+                    //float4 vCWts          : TANWEIGHTS;
+                };
+
+                struct DS_OUTPUT
+                {
+                    float4 position : POSITION;
+                    float4 col : COLOR;
+                };
+
+                 // Geometry to Fragment
+                struct GS_OUTPUT
+                {
+                    float4	position	: POSITION;
+                    float4  col 		: COLOR;
+                };
 				// Vertex Shader
 				VS_OUTPUT vert(appdata_base v)
 				{
@@ -47,26 +67,7 @@ Shader "SinTest"
 					output.position = v.vertex;			
 					return output;
 				}
-                
-				// HULL SHADER //
-				// Output control point
-				struct HS_OUTPUT
-				{
-				    float3 position	: BEZIERPOS;
-				};
-
-				// Output patch constant data.
-				struct HS_CONSTANT_OUTPUT
-				{
-				    float Edges[3]        : SV_TessFactor;
-				    float Inside[1]       : SV_InsideTessFactor;
-				    
-				    //float3 vTangent[4]    : TANGENT;
-				    //float2 vUV[4]         : TEXCOORD;
-				    //float3 vTanUCorner[4] : TANUCORNER;
-				    //float3 vTanVCorner[4] : TANVCORNER;
-				    //float4 vCWts          : TANWEIGHTS;
-				};
+               
 				#define MAX_POINTS 3
 
 				// Patch Constant Function
@@ -106,16 +107,6 @@ Shader "SinTest"
 				    return output;
 				}
 				
-				
-
-
-				// DOMAIN SHADER //
-				struct DS_OUTPUT
-				{
-					float4 position : POSITION;
-					float4 col : COLOR;
-				};
-				
 				[domain("tri")]
 				DS_OUTPUT dom(
 					HS_CONSTANT_OUTPUT input,
@@ -148,15 +139,6 @@ Shader "SinTest"
 				    return output;    
 				}
 
-
-				
-				// GEOMETRY SHADER //
-				// Geometry to  UCLAGL_fragment
-				struct GS_OUTPUT
-				{
-					float4	position	: POSITION;		// fragment position
-					float4  col 		: COLOR;
-				};
 				// Geometry Shader
 				[maxvertexcount(6)]
 				void geom(triangle DS_OUTPUT p[3], inout TriangleStream<GS_OUTPUT> triStream)
@@ -191,7 +173,6 @@ Shader "SinTest"
 					triStream.Append(pIn);	
 				}
 				
-				// FRAGMENT SHADER
 				// Fragment Shader
 				float4 frag(GS_OUTPUT input) : COLOR
 				{				
