@@ -24,19 +24,21 @@ Shader "sin-test"
 				#pragma domain dom
 				#pragma geometry geom
 				#pragma fragment frag
-				
-				float4 _Color;
+		        
+				#define MAX_POINTS 3
+        
 				float _SinOffset;
 								
-				// Vertex to Geometry
+				// Vertex to Hull
 				struct VS_OUTPUT { float4 position : POSITION; };
 
+                // Hull to Domain
                 // Output control point
                 struct HS_OUTPUT { float3 position : BEZIERPOS; };
 
+                // Hull Constant to Domain
                 // Output patch constant data.
-                struct HS_CONSTANT_OUTPUT
-                {
+                struct HS_CONSTANT_OUTPUT {
                     float Edges[3]        : SV_TessFactor;
                     float Inside[1]       : SV_InsideTessFactor;
 
@@ -47,34 +49,46 @@ Shader "sin-test"
                     //float4 vCWts          : TANWEIGHTS;
                 };
 
-                struct DS_OUTPUT
-                {
+                // Domain to Geometry
+                struct DS_OUTPUT {
                     float4 position : POSITION;
                     float4 col : COLOR;
                 };
 
                  // Geometry to Fragment
-                struct GS_OUTPUT
-                {
+                struct GS_OUTPUT {
                     float4	position	: POSITION;
                     float4  col 		: COLOR;
                 };
+
 				// Vertex Shader
-				VS_OUTPUT vert(appdata_base v)
-				{
+				VS_OUTPUT vert(appdata_base v) {
 					VS_OUTPUT output;
 					output.position =  UnityObjectToClipPos(v.vertex);		
 					output.position = v.vertex;			
 					return output;
 				}
                
-				#define MAX_POINTS 3
+                // Hull Shader
+                // Transform and output control points for the hull points
+                // to then be transformed in the domain shader
+                [domain("tri")]
+                [partitioning("integer")]
+                [outputtopology("triangle_cw")]
+                [outputcontrolpoints(MAX_POINTS)]
+                [patchconstantfunc("hsConstant")]
+                HS_OUTPUT hull(InputPatch<VS_OUTPUT, MAX_POINTS> ip, uint i : SV_OutputControlPointID, uint PatchID : SV_PrimitiveID) {
+                    HS_OUTPUT output;
+                    output.position = ip[i].position;
+
+                    return output;
+                }
 
 				// Patch Constant Function
-				HS_CONSTANT_OUTPUT hsConstant(
-					InputPatch<VS_OUTPUT, MAX_POINTS> ip,
-				    uint PatchID : SV_PrimitiveID )
-				{	
+                // Outputs edge and internal tesellation values for the triangle
+                // This could be driven by camera skew, distance from camera, texture sampling, etc
+                // to change the detail that is tessellated to
+                HS_CONSTANT_OUTPUT hsConstant(InputPatch<VS_OUTPUT, MAX_POINTS> ip, uint PatchID : SV_PrimitiveID) {	
 				    HS_CONSTANT_OUTPUT output;
 
 					float edge = 32.0f;
@@ -91,28 +105,12 @@ Shader "sin-test"
 				    return output;
 				}
 				
+                // Domain Shader
+                // Transform all the points from the hull shader here
+                // The detail from the tessellated patch and the hull control points 
+                // are available here
 				[domain("tri")]
-				[partitioning("integer")]
-				[outputtopology("triangle_cw")]
-				[outputcontrolpoints(MAX_POINTS)]
-				[patchconstantfunc("hsConstant")]
-				HS_OUTPUT hull( 
-				    InputPatch<VS_OUTPUT, MAX_POINTS> ip, 
-				    uint i : SV_OutputControlPointID,
-				    uint PatchID : SV_PrimitiveID )
-				{
-				    HS_OUTPUT output;
-					output.position = ip[i].position;
-
-				    return output;
-				}
-				
-				[domain("tri")]
-				DS_OUTPUT dom(
-					HS_CONSTANT_OUTPUT input,
-					float3 UV : SV_DomainLocation,
-					const OutputPatch<HS_OUTPUT, MAX_POINTS> patch )
-				{
+				DS_OUTPUT dom(HS_CONSTANT_OUTPUT input, float3 UV : SV_DomainLocation, const OutputPatch<HS_OUTPUT, MAX_POINTS> patch ) {
 				    DS_OUTPUT output;
 				    
 				    //float3 topMidpoint = lerp(patch[0].position, patch[1].position, UV.x);
@@ -129,7 +127,6 @@ Shader "sin-test"
 				    	UV.y * patch[1].position + 
 				    	UV.z * patch[2].position;
 				    	
-				    	
 				    pos.z += sin(UV.x * 10.0f + _SinOffset) + sin(UV.y * 10.0f + _SinOffset);
 				    pos.z *= 0.1f;
 				    
@@ -140,10 +137,10 @@ Shader "sin-test"
 				}
 
 				// Geometry Shader
+                // Produce new geometry if desired
 				[maxvertexcount(6)]
 				void geom(triangle DS_OUTPUT p[3], inout TriangleStream<GS_OUTPUT> triStream)
 				{
-				
 					GS_OUTPUT pIn;
 					
 					// Add the normal facing triangle
@@ -174,6 +171,7 @@ Shader "sin-test"
 				}
 				
 				// Fragment Shader
+                // Pixel Color
 				float4 frag(GS_OUTPUT input) : COLOR
 				{				
 					float4 col = input.col;
