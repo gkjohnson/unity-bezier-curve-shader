@@ -7,15 +7,15 @@ Shader "sin-test"
 	Properties 
 	{
 		_SinOffset ("Sin Offset", Float) = 0
+        _TessellationAmt("Tessellation", Float) = 5
 	}
 
 	SubShader 
 	{
 		Tags { "RenderType" = "Opaque" "Queue" = "Geometry" }
+
 		Pass
-		{
-			Blend SrcAlpha OneMinusSrcAlpha 
-			
+		{		
 			CGPROGRAM
 				#pragma target 5.0
 				#include "UnityCG.cginc"
@@ -25,10 +25,12 @@ Shader "sin-test"
 				#pragma geometry geom
 				#pragma fragment frag
 		        
+                // Triangle
 				#define MAX_POINTS 3
         
 				float _SinOffset;
-								
+                float _TessellationAmt;
+
 				// Vertex to Hull
 				struct VS_OUTPUT { float4 position : POSITION; };
 
@@ -91,8 +93,8 @@ Shader "sin-test"
                 HS_CONSTANT_OUTPUT hsConstant(InputPatch<VS_OUTPUT, MAX_POINTS> ip, uint PatchID : SV_PrimitiveID) {	
 				    HS_CONSTANT_OUTPUT output;
 
-					float edge = 32.0f;
-					float inside = 32.0f;
+					float edge = _TessellationAmt;
+					float inside = _TessellationAmt;
 					
 					output.Edges[0] = edge;
 					output.Edges[1] = edge;

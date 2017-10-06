@@ -1,6 +1,4 @@
-﻿// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
-
-Shader "HullTest" 
+﻿Shader "HullTest" 
 {
 	Properties 
 	{
@@ -11,12 +9,11 @@ Shader "HullTest"
 	SubShader 
 	{
 		Tags { "RenderType"="Opaque" "Queue"="Geometry" }
+
 		Pass
 		{
 			Cull Off
-			Blend SrcAlpha OneMinusSrcAlpha 
-			LOD 200
-			
+
 			CGPROGRAM
 				#pragma target 5.0
 				#include "UnityCG.cginc"
@@ -26,29 +23,28 @@ Shader "HullTest"
 				#pragma geometry geom
 				#pragma fragment frag
 
-				
-				float4 _Color;
-				float _SinOffset;
+            	// Quad
+                #define MAX_POINTS 4
+
 				sampler2D _MainTex;
 				float4 _MainTex_ST;
-				
-				uniform StructuredBuffer<float3> _controlPoints;
-				float _TessellationAmt;
+                float _TessellationAmt;
+                uniform StructuredBuffer<float3> _controlPoints;
 
-				// Vertex to Geometry
-				struct VS_OUTPUT
-				{
+				// Vertex to Hull
+				struct VS_OUTPUT {
 					float4 position     : POSITION;		// vertex position
 					float2 uv           : TEXCOORD0;
 				};
                 
+                // Hull to Domain
                 // Output control point
-                struct HS_OUTPUT
-                {
+                struct HS_OUTPUT {
                     float3 position	: BEZIERPOS;
                     float2 uv       : TEXCOORD0;
                 };
 
+                // Hull Constant to Domain
                 // Output patch constant data.
                 struct HS_CONSTANT_OUTPUT
                 {
@@ -62,6 +58,7 @@ Shader "HullTest"
                     //float4 vCWts          : TANWEIGHTS;
                 };
 
+                // Domain to Geometry
                 struct DS_OUTPUT
                 {
                     float4 position : POSITION;
@@ -69,7 +66,7 @@ Shader "HullTest"
                     float2 uv : TEXCOORD0;
                 };
 
-                // GEOMETRY SHADER //
+                // Geometry to Fragment
                 struct GS_OUTPUT
                 {
                     float4	position	: POSITION;		// fragment position
@@ -87,9 +84,7 @@ Shader "HullTest"
 					output.uv = v.texcoord.xy;
 					return output;
 				}
-
-				#define MAX_POINTS 4
-				
+                				
 				// Patch Constant Function
 				HS_CONSTANT_OUTPUT hsConstant(
 					InputPatch<VS_OUTPUT, MAX_POINTS> ip,
@@ -113,16 +108,13 @@ Shader "HullTest"
 				    return output;
 				}
 				
+                // Domain Shader
 				[domain("quad")]
 				[partitioning("fractional_even")]
 				[outputtopology("triangle_cw")]
 				[outputcontrolpoints(MAX_POINTS)]
 				[patchconstantfunc("hsConstant")]
-				HS_OUTPUT hull( 
-				    InputPatch<VS_OUTPUT, MAX_POINTS> ip, 
-				    uint i : SV_OutputControlPointID,
-				    uint PatchID : SV_PrimitiveID )
-				{
+				HS_OUTPUT hull(InputPatch<VS_OUTPUT, MAX_POINTS> ip, uint i : SV_OutputControlPointID, uint PatchID : SV_PrimitiveID ) {
 				    HS_OUTPUT output;
 					output.uv = ip[i].uv;
 					
@@ -131,36 +123,28 @@ Shader "HullTest"
 				    return output;
 				}				
 				
+                // Bezier Curve Functions
 				// returns the factorial of n until "stop" is hit
-				float factorial(int n, int stop)
-				{
-					if( n<=0 )
-					{
-						return 1;
-					}
-					if( stop <= 0 )
-					{
-						stop = 1;
-					}
+				float factorial(int n, int stop) {
+					if(n<=0) return 1;
+					if(stop <= 0) stop = 1;
 					
 					float res = 1;
-					for( int i = n ; i >= stop ; i -- )
-					{
+					for(int i = n; i >= stop; i--) {
 						res *= i;
 					}
 					return res;
 				}
+
 				// returns the factorial of n
-				float factorial(int n)
-				{
+				float factorial(int n) {
 					return factorial(n,2);
 				}
 				
 				// Takes an array of 16 control points to solve
 				// the points are expected to be in the following format (Pxy)
 				// P00 P10 P20 P30 P01 P11 ... P23 P33
-				float3 SurfaceSolve(float3 cps[16], float2 uv)
-				{
+				float3 SurfaceSolve(float3 cps[16], float2 uv) {
 					float u = uv.y;
 					float v = uv.x;
 					
@@ -186,8 +170,8 @@ Shader "HullTest"
 					}
 					return pos;
 				}
-				float3 SurfaceSolve(StructuredBuffer<float3> cps, float2 uv)
-				{
+
+				float3 SurfaceSolve(StructuredBuffer<float3> cps, float2 uv) {
 					float3 arr[16];
 					for( int i = 0 ; i < 16 ; i ++ )
 					{
@@ -199,8 +183,7 @@ Shader "HullTest"
 				// Solves for a cubic Bezier curve using the
 				// four given control points and returns the point
 				// at "t" interpolation on the curve
-				float3 CurveSolve(float3 cp0, float3 cp1, float3 cp2, float3 cp3, float t)
-				{
+				float3 CurveSolve(float3 cp0, float3 cp1, float3 cp2, float3 cp3, float t) {
 					// summed bezier curve formula
 					float3 cps[4] = {cp0, cp1, cp2, cp3};
 					float3 pos = float3(0,0,0);
@@ -229,12 +212,9 @@ Shader "HullTest"
 					return pos;
 				}
 				
+                // Domain Shader
 				[domain("quad")]
-				DS_OUTPUT dom(
-					HS_CONSTANT_OUTPUT input,
-					float2 UV : SV_DomainLocation,
-					const OutputPatch<HS_OUTPUT, MAX_POINTS> patch )
-				{
+				DS_OUTPUT dom(HS_CONSTANT_OUTPUT input, float2 UV : SV_DomainLocation, const OutputPatch<HS_OUTPUT, MAX_POINTS> patch ) {
 				    DS_OUTPUT output;
 
 				    // Why do we have to do this?
