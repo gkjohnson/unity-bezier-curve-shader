@@ -5,6 +5,7 @@
 		_MainTex ("Main Texture", 2D) = "white" {}
         _InternalTessellation("Internal Tessellation", Float) = 5
         _EdgeTessellation("Edge Tessellation", Float) = 5
+        [Toggle]_DisplayWireframe("Display Wireframe", Float) = 0
 	}
 
 	SubShader 
@@ -18,10 +19,11 @@
 			CGPROGRAM
 				#pragma target 5.0
 				#include "UnityCG.cginc"
+                #include "../Addon/UCLA GameLab Wireframe Functions.cginc"
 				#pragma vertex vert
 				#pragma hull hull
 				#pragma domain dom
-				#pragma geometry geom
+				#pragma geometry geom 
 				#pragma fragment frag
 
             	// Quad
@@ -31,6 +33,7 @@
 				float4 _MainTex_ST;
                 float _InternalTessellation;
                 float _EdgeTessellation;
+                float _DisplayWireframe;
                 uniform StructuredBuffer<float3> _controlPoints;
 
 				// Vertex to Hull
@@ -60,7 +63,7 @@
                     //float4 vCWts          : TANWEIGHTS;
                 };
 
-                // Domain to Geometry
+                // Domain to Geometry 
                 struct DS_OUTPUT
                 {
                     float4 position : POSITION;
@@ -71,9 +74,10 @@
                 // Geometry to Fragment
                 struct GS_OUTPUT
                 {
-                    float4	position	: POSITION;		// fragment position
-                    float4  col 		: COLOR;
-                    float2 uv : TEXCOORD0;
+                    float4 position	    : POSITION;		// fragment position
+                    float4 col 		    : COLOR;
+                    float2 uv           : TEXCOORD0;
+                    float3 dist         : TEXCOORD1;
                 };
 
 				// Vertex Shader
@@ -237,23 +241,26 @@
 				[maxvertexcount(6)]
 				void geom(triangle DS_OUTPUT p[3], inout TriangleStream<GS_OUTPUT> triStream)
 				{
-				
+                    float3 dist = UCLAGL_CalculateDistToCenter(p[0].position, p[1].position, p[2].position);
+
 					GS_OUTPUT i1, i2, i3;
 					
 					// Add the normal facing triangle
-					
 					i1.position = p[0].position;
 					i1.col = p[0].col;
 					i1.uv = p[0].uv;
-					
+                    i1.dist = float3(dist.x, 0, 0);
+
 					i2.position = p[1].position;
 					i2.col = p[1].col;
 					i2.uv = p[1].uv;
-					
+                    i2.dist = float3(0, dist.y, 0);
+
 					i3.position = p[2].position;
 					i3.col = p[2].col;
 					i3.uv = p[2].uv;
-					
+                    i3.dist = float3(0, 0, dist.z);
+
 					triStream.Append(i1);
 					triStream.Append(i2);
 					triStream.Append(i3);	
@@ -261,8 +268,11 @@
 				
 				// Fragment Shader
 				float4 frag(GS_OUTPUT input) : COLOR
-				{				
-					float4 col = input.col;
+				{
+                    float alpha = UCLAGL_GetWireframeAlpha(input.dist, .25, 100, 1);
+                    clip(alpha - 0.5 + _DisplayWireframe);
+					
+                    float4 col = input.col;
 					float2 uv = TRANSFORM_TEX (input.uv, _MainTex);
 					col = tex2D(_MainTex, uv);
 					

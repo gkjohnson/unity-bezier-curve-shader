@@ -71,8 +71,8 @@ struct UCLAGL_g2f
 float _Thickness = 1;		// Thickness of the wireframe line rendering
 float _Firmness = 1;		// Thickness of the wireframe line rendering
 float4 _Color = {1,1,1,1};	// Color of the line
-float4 _MainTex_ST;			// For the Main Tex UV transform
-sampler2D _MainTex;			// Texture used for the line
+//float4 _MainTex_ST;			// For the Main Tex UV transform
+//sampler2D _MainTex;			// Texture used for the line
 
 // SHADER PROGRAMS //
 // Vertex Shader
@@ -80,7 +80,7 @@ UCLAGL_v2g UCLAGL_vert(appdata_base v)
 {
 	UCLAGL_v2g output;
 	output.pos = UnityObjectToClipPos(v.vertex);
-	output.uv = TRANSFORM_TEX (v.texcoord, _MainTex);
+    output.uv = float2(0, 0); // TRANSFORM_TEX(v.texcoord, _MainTex);
 
 	return output;
 }
@@ -121,7 +121,7 @@ float4 UCLAGL_frag(UCLAGL_g2f input) : COLOR
     #endif
 
     float alpha = UCLAGL_GetWireframeAlpha(input.dist, _Thickness, _Firmness, w);
-    float4 col = _Color * tex2D(_MainTex, input.uv);
+    float4 col = _Color; // *tex2D(_MainTex, input.uv);
     col.a *= alpha;
 
     #if UCLAGL_CUTOUT
