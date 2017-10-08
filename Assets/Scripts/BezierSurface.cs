@@ -2,7 +2,6 @@
 
 [RequireComponent(typeof(MeshFilter))]
 public class BezierSurface : MonoBehaviour {
-
     // Visual size of and whether to display the
     // control points
     public float _controlpointScale = 0.1f;
@@ -53,6 +52,7 @@ public class BezierSurface : MonoBehaviour {
 
 		// set the indices to quads so we our hull shader can use it
 		mesh.SetIndices(new int[]{ 3, 2, 1, 0}, MeshTopology.Quads, 0);
+        mesh.bounds = new Bounds(Vector3.zero, 10000 * Vector3.one);
 		GetComponent<MeshFilter>().mesh = mesh;
 
 		// initialize the buffer

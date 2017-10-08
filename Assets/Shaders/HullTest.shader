@@ -3,7 +3,8 @@
 	Properties 
 	{
 		_MainTex ("Main Texture", 2D) = "white" {}
-		_TessellationAmt ("Tessellation", Float) = 5
+        _InternalTessellation("Internal Tessellation", Float) = 5
+        _EdgeTessellation("Edge Tessellation", Float) = 5
 	}
 
 	SubShader 
@@ -28,7 +29,8 @@
 
 				sampler2D _MainTex;
 				float4 _MainTex_ST;
-                float _TessellationAmt;
+                float _InternalTessellation;
+                float _EdgeTessellation;
                 uniform StructuredBuffer<float3> _controlPoints;
 
 				// Vertex to Hull
@@ -92,8 +94,8 @@
 				{	
 				    HS_CONSTANT_OUTPUT output;
 
-					float edge = _TessellationAmt;
-					float inside = _TessellationAmt;
+					float edge = _EdgeTessellation;
+					float inside = _InternalTessellation;
 					
 					// Set the tessellation factors for the inside
 					// and outside edges of the quad
@@ -225,8 +227,8 @@
 
 				    float4 pos = float4(SurfaceSolve(_controlPoints, uv),1);
 					output.position = UnityObjectToClipPos(pos);
-
 					output.uv = UV;
+                    output.col = float4(1, 1, 1, 1);
 
 				    return output;    
 				}
