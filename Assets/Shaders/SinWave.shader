@@ -4,7 +4,7 @@
 // when it's batched.
 // It could have something to do with the shader getting batched
 // and therefore not having the right transformed "forward"
-Shader "sin-test" 
+Shader "Tessellated/Sin Wave" 
 {
     Properties 
     {

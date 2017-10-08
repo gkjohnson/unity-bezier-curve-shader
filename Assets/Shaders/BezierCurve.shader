@@ -1,4 +1,4 @@
-﻿Shader "HullTest" 
+﻿Shader "Tessellated/Bezier Curve" 
 {
     Properties 
     {
