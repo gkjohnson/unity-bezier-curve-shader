@@ -9,7 +9,7 @@ Shader "sin-test"
 		_SinOffset ("Sin Offset", Float) = 0
         _InternalTessellation("Internal Tessellation", Float) = 5
         _EdgeTessellation("Edge Tessellation", Float) = 5
-        [Toggle]_DisplayWireframe("Display Wireframe", Float) = 0
+        [Toggle]_HideWireframe("Hide Wireframe", Float) = 0
 	}
 
 	SubShader 
@@ -34,7 +34,7 @@ Shader "sin-test"
 				float _SinOffset;
                 float _InternalTessellation;
                 float _EdgeTessellation;
-                float _DisplayWireframe;
+                float _HideWireframe;
 
 				// Vertex to Hull
 				struct VS_OUTPUT { float4 position : POSITION; };
@@ -189,9 +189,9 @@ Shader "sin-test"
 				// Fragment Shader
                 // Pixel Color
 				float4 frag(GS_OUTPUT input) : COLOR
-				{				
+				{
                     float alpha = UCLAGL_GetWireframeAlpha(input.dist, .25, 100, 1);
-                    clip(alpha - 0.5 + _DisplayWireframe);
+                    clip(alpha - 0.5 + _HideWireframe);
 
                     float4 col = input.col * (0.5 * alpha + 0.5);
 					

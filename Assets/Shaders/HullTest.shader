@@ -5,7 +5,7 @@
 		_MainTex ("Main Texture", 2D) = "white" {}
         _InternalTessellation("Internal Tessellation", Float) = 5
         _EdgeTessellation("Edge Tessellation", Float) = 5
-        [Toggle]_DisplayWireframe("Display Wireframe", Float) = 0
+        [Toggle]_HideWireframe("Hide Wireframe", Float) = 0
 	}
 
 	SubShader 
@@ -33,7 +33,7 @@
 				float4 _MainTex_ST;
                 float _InternalTessellation;
                 float _EdgeTessellation;
-                float _DisplayWireframe;
+                float _HideWireframe;
                 uniform StructuredBuffer<float3> _controlPoints;
 
 				// Vertex to Hull
@@ -270,7 +270,7 @@
 				float4 frag(GS_OUTPUT input) : COLOR
 				{
                     float alpha = UCLAGL_GetWireframeAlpha(input.dist, .25, 100, 1);
-                    clip(alpha - 0.5 + _DisplayWireframe);
+                    clip(alpha - 0.5 + _HideWireframe);
 					
                     float4 col = input.col;
 					float2 uv = TRANSFORM_TEX (input.uv, _MainTex);
