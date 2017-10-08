@@ -7,7 +7,8 @@ Shader "sin-test"
 	Properties 
 	{
 		_SinOffset ("Sin Offset", Float) = 0
-        _TessellationAmt("Tessellation", Float) = 5
+        _InternalTessellation("Internal Tessellation", Float) = 5
+        _EdgeTessellation("Edge Tessellation", Float) = 5
 	}
 
 	SubShader 
@@ -19,6 +20,7 @@ Shader "sin-test"
 			CGPROGRAM
 				#pragma target 5.0
 				#include "UnityCG.cginc"
+                #include "../Addon/UCLA GameLab Wireframe Functions.cginc"
 				#pragma vertex vert
 				#pragma hull hull
 				#pragma domain dom
@@ -29,7 +31,8 @@ Shader "sin-test"
 				#define MAX_POINTS 3
         
 				float _SinOffset;
-                float _TessellationAmt;
+                float _InternalTessellation;
+                float _EdgeTessellation;
 
 				// Vertex to Hull
 				struct VS_OUTPUT { float4 position : POSITION; };
@@ -61,6 +64,7 @@ Shader "sin-test"
                 struct GS_OUTPUT {
                     float4	position	: POSITION;
                     float4  col 		: COLOR;
+                    float3  dist	    : TEXCOORD0;
                 };
 
 				// Vertex Shader
@@ -93,8 +97,8 @@ Shader "sin-test"
                 HS_CONSTANT_OUTPUT hsConstant(InputPatch<VS_OUTPUT, MAX_POINTS> ip, uint PatchID : SV_PrimitiveID) {	
 				    HS_CONSTANT_OUTPUT output;
 
-					float edge = _TessellationAmt;
-					float inside = _TessellationAmt;
+					float edge = _EdgeTessellation;
+					float inside = _InternalTessellation;
 					
 					output.Edges[0] = edge;
 					output.Edges[1] = edge;
@@ -145,38 +149,50 @@ Shader "sin-test"
 				{
 					GS_OUTPUT pIn;
 					
+                    float3 dist = UCLAGL_CalculateDistToCenter(p[0].position, p[1].position, p[2].position);
+
 					// Add the normal facing triangle
 					pIn.position = p[0].position;
 					pIn.col = p[0].col;
+                    pIn.dist = float3(dist.x, 0 ,0);
 					triStream.Append(pIn);
 					
 					pIn.position = p[1].position;
 					pIn.col = p[1].col;
-					triStream.Append(pIn);
+                    pIn.dist = float3(0, dist.y, 0);
+                    triStream.Append(pIn);
 					
 					pIn.position = p[2].position;
 					pIn.col = p[2].col;
-					triStream.Append(pIn);	
+                    pIn.dist = float3(0, 0, dist.z);
+                    triStream.Append(pIn);
 					
 					// Add a reverse facing triangle
 					pIn.position = p[0].position;
 					pIn.col = p[0].col;
-					triStream.Append(pIn);				
+                    pIn.dist = float3(dist.x, 0, 0);
+                    triStream.Append(pIn);
 					
 					pIn.position = p[1].position;
 					pIn.col = p[1].col;
-					triStream.Append(pIn);
+                    pIn.dist = float3(0, dist.y, 0);
+                    triStream.Append(pIn);
 					
 					pIn.position = p[2].position;
 					pIn.col = p[2].col;
-					triStream.Append(pIn);	
+                    pIn.dist = float3(0, 0, dist.z);
+                    triStream.Append(pIn);
 				}
 				
 				// Fragment Shader
                 // Pixel Color
 				float4 frag(GS_OUTPUT input) : COLOR
 				{				
-					float4 col = input.col;
+                    float alpha = UCLAGL_GetWireframeAlpha(input.dist, .25, 100, 1);
+
+                    if (alpha < 0.5f) discard;
+
+                    float4 col = input.col * alpha;
 					
 					return col;
 				}
