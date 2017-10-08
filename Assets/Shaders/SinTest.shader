@@ -1,4 +1,6 @@
-﻿// TODO : Something weird happens with this shader 
+﻿// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
+
+// TODO : Something weird happens with this shader 
 // when it's batched.
 // It could have something to do with the shader getting batched
 // and therefore not having the right transformed "forward"
@@ -64,9 +66,10 @@ Shader "sin-test"
 
                  // Geometry to Fragment
                 struct GS_OUTPUT {
-                    float4  position    : POSITION;
-                    float4  col         : COLOR;
-                    float3  dist        : TEXCOORD0;
+                    float4 position     : POSITION;
+                    float4 col          : COLOR;
+                    float3 dist         : TEXCOORD0;
+                    float3 normal       : NORMAL;
                 };
 
                 // Vertex Shader
@@ -138,7 +141,7 @@ Shader "sin-test"
                     pos.z += sin(UV.x * 10.0f + _SinOffset) + sin(UV.y * 10.0f + _SinOffset);
                     pos.z *= 0.1f;
                     
-                    output.position = UnityObjectToClipPos(float4(pos,1));
+                    output.position = float4(pos, 1);
                     output.col = float4(UV.x,UV.y,0,1);
                     
                     return output;    
@@ -151,38 +154,53 @@ Shader "sin-test"
                 {
                     GS_OUTPUT pIn;
                     
+                    float3 norm = cross(p[0].position - p[1].position, p[0].position - p[2].position);
+                    norm = normalize(mul(unity_ObjectToWorld, float4(norm,0))).xyz;
+                    
+                    // TODO: Consider moving this to the
+                    // domain or the vertex shader
+                    p[0].position = UnityObjectToClipPos(p[0].position);
+                    p[1].position = UnityObjectToClipPos(p[1].position);
+                    p[2].position = UnityObjectToClipPos(p[2].position);
+
                     float3 dist = UCLAGL_CalculateDistToCenter(p[0].position, p[1].position, p[2].position);
 
                     // Add the normal facing triangle
                     pIn.position = p[0].position;
                     pIn.col = p[0].col;
                     pIn.dist = float3(dist.x, 0 ,0);
+                    pIn.normal = norm;
                     triStream.Append(pIn);
                     
                     pIn.position = p[1].position;
                     pIn.col = p[1].col;
                     pIn.dist = float3(0, dist.y, 0);
+                    pIn.normal = norm;
                     triStream.Append(pIn);
                     
                     pIn.position = p[2].position;
                     pIn.col = p[2].col;
                     pIn.dist = float3(0, 0, dist.z);
+                    pIn.normal = norm;
                     triStream.Append(pIn);
                     
                     // Add a reverse facing triangle
                     pIn.position = p[0].position;
                     pIn.col = p[0].col;
                     pIn.dist = float3(dist.x, 0, 0);
+                    pIn.normal = norm;
                     triStream.Append(pIn);
                     
                     pIn.position = p[1].position;
                     pIn.col = p[1].col;
                     pIn.dist = float3(0, dist.y, 0);
+                    pIn.normal = norm;
                     triStream.Append(pIn);
                     
                     pIn.position = p[2].position;
                     pIn.col = p[2].col;
                     pIn.dist = float3(0, 0, dist.z);
+                    pIn.normal = norm;
                     triStream.Append(pIn);
                 }
                 
@@ -194,7 +212,7 @@ Shader "sin-test"
                     clip(alpha - 0.5 + _HideWireframe);
 
                     float4 col = input.col * (0.5 * alpha + 0.5);
-                    
+                    col = float4(input.normal, 1);
                     return col;
                 }
             

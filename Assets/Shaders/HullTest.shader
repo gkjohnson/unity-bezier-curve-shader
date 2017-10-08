@@ -77,6 +77,7 @@
                     float4 position     : POSITION;     // fragment position
                     float4 col          : COLOR;
                     float2 uv           : TEXCOORD0;
+                    float3 normal       : NORMAL;
                     float3 dist         : TEXCOORD1;
                 };
 
@@ -230,7 +231,7 @@
                     uv.y += 0.0000001;
 
                     float4 pos = float4(SurfaceSolve(_controlPoints, uv),1);
-                    output.position = UnityObjectToClipPos(pos);
+                    output.position = pos;
                     output.uv = UV;
                     output.col = float4(1, 1, 1, 1);
 
@@ -241,6 +242,13 @@
                 [maxvertexcount(6)]
                 void geom(triangle DS_OUTPUT p[3], inout TriangleStream<GS_OUTPUT> triStream)
                 {
+                    float3 norm = cross(p[0].position - p[1].position, p[0].position - p[2].position);
+                    norm = normalize(mul(unity_ObjectToWorld, float4(norm, 0))).xyz;
+
+                    p[0].position = UnityObjectToClipPos(p[0].position);
+                    p[1].position = UnityObjectToClipPos(p[1].position);
+                    p[2].position = UnityObjectToClipPos(p[2].position);
+
                     float3 dist = UCLAGL_CalculateDistToCenter(p[0].position, p[1].position, p[2].position);
 
                     GS_OUTPUT i1, i2, i3;
@@ -249,16 +257,19 @@
                     i1.position = p[0].position;
                     i1.col = p[0].col;
                     i1.uv = p[0].uv;
+                    i1.normal = norm;
                     i1.dist = float3(dist.x, 0, 0);
 
                     i2.position = p[1].position;
                     i2.col = p[1].col;
                     i2.uv = p[1].uv;
+                    i2.normal = norm;
                     i2.dist = float3(0, dist.y, 0);
 
                     i3.position = p[2].position;
                     i3.col = p[2].col;
                     i3.uv = p[2].uv;
+                    i3.normal = norm;
                     i3.dist = float3(0, 0, dist.z);
 
                     triStream.Append(i1);
@@ -267,14 +278,14 @@
                 }
                 
                 // Fragment Shader
-                float4 frag(GS_OUTPUT input) : COLOR
+                float4 frag(GS_OUTPUT input, fixed facing : VFACE) : COLOR
                 {
                     float alpha = UCLAGL_GetWireframeAlpha(input.dist, .25, 100, 1);
-                    clip(alpha - 0.5 + _HideWireframe);
+                    clip(alpha - 0.9);
                     
                     float4 col = input.col;
                     float2 uv = TRANSFORM_TEX (input.uv, _MainTex);
-                    col = tex2D(_MainTex, uv);
+                    col = tex2D(_MainTex, uv) * float4(input.normal * facing, 1);
                     
                     return col;
                 }
